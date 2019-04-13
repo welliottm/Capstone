@@ -1,5 +1,5 @@
 # -------- libraries --------
-\from keras.models import Sequential
+from keras.models import Sequential
 from keras.layers import Dense
 from keras.preprocessing import sequence
 import numpy as np  
