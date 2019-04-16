@@ -56,6 +56,8 @@ class review_invoices:
         df = self.df_1.append(self.df_2, ignore_index = True)
         # Fill null cells with the string 'blank'
         df = df.fillna('blank')
+        # Parse out phone numbers into a new column, phone_num
+        df['phone_num'] = df['Terms'].str.extract('(\(?\d\d\d\)? ?\d\d\d-?\d\d\d\d)')
         # Convert dataframe columns to series
         self.X = df["Terms"]
         self.y = df["Chargeback"]
