@@ -68,6 +68,10 @@ class review_invoices:
         df['Terms'] = df['Terms'].replace('(\S+@\S+)', '', regex=True)
         # Remove "Contact:", "Email:", "Phone:"
         df['Terms'] = df['Terms'].replace('(Contact:|Email:|Phone:)', '', regex=True)
+        # Extract the code at the end of each email
+        df['Code'] = df['Terms'].str.rsplit(' ', 1).str[1]
+        # Remove the code from the Terms column
+        df['Terms'] = df['Terms'].str.rsplit(' ', 1).str[0]
         # Convert dataframe columns to series
         self.X = df["Terms"]
         self.y = df["Chargeback"]
