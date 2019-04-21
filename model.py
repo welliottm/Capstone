@@ -67,9 +67,7 @@ class review_invoices:
         # Remove email addresses
         df['Terms'] = df['Terms'].replace('(\S+@\S+)', '', regex=True)
         # Remove "Contact:", "Email:", "Phone:"
-        df['Terms'] = df['Terms'].replace('(\bContact:\b)', '', regex=True)
-        df['Terms'] = df['Terms'].replace('(\bEmail:\b)', '', regex=True)
-        df['Terms'] = df['Terms'].replace('(\bPhone:\b)', '', regex=True)
+        df['Terms'] = df['Terms'].replace('(Contact:|Email:|Phone:)', '', regex=True)
         # Convert dataframe columns to series
         self.X = df["Terms"]
         self.y = df["Chargeback"]
