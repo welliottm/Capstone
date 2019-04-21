@@ -50,21 +50,26 @@ class review_invoices:
         self.df_2 = pd.read_csv('Data/data2.csv')
         # Empty list for...
         self.documents = []
-    
+
     def clean_df(self):
         # Combine the two dataframes into one dataframe
         df = self.df_1.append(self.df_2, ignore_index = True)
         # Fill null cells with the string 'blank'
         df = df.fillna('blank')
         # Parse out phone numbers into a new column, phone_num
-        df['phone_num_1'] = df['Terms'].str.extract('(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)')
+        df['phone_num_1'] = df['Terms'].str.extract(
+            '(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)')
         # Remove the phone numbers from the Terms column
-        df['Terms'] = df['Terms'].replace('(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)',
-            '', regex = True)
+        df['Terms'] = df['Terms'].replace(
+            '(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)', '', regex = True)
         # Extract email addresses
         df['email'] = df['Terms'].str.extract('(\S+@\S+)')
         # Remove email addresses
         df['Terms'] = df['Terms'].replace('(\S+@\S+)', '', regex=True)
+        # Remove "Contact:", "Email:", "Phone:"
+        df['Terms'] = df['Terms'].replace('(\bContact:\b)', '', regex=True)
+        df['Terms'] = df['Terms'].replace('(\bEmail:\b)', '', regex=True)
+        df['Terms'] = df['Terms'].replace('(\bPhone:\b)', '', regex=True)
         # Convert dataframe columns to series
         self.X = df["Terms"]
         self.y = df["Chargeback"]
