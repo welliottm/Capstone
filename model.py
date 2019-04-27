@@ -72,6 +72,8 @@ class review_invoices:
         df['Code'] = df['Terms'].str.rsplit(' ', 1).str[1]
         # Remove the code from the Terms column
         df['Terms'] = df['Terms'].str.rsplit(' ', 1).str[0]
+        # Make dataframe callable outside of the method
+        self.df = df
         # Convert dataframe columns to series
         self.X = df["Terms"]
         self.y = df["Chargeback"]
