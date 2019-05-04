@@ -2,6 +2,7 @@
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.preprocessing import sequence
+from IPython.display import display
 import numpy as np  
 import pandas as pd
 import re
@@ -42,41 +43,84 @@ class review_invoices:
         Every variable defined within this method can be called and viewed by 
         the user. Conversely, anything within the below methods is private.
         
-        Remember that to make a variable callable/called by other methods, put 
-        'self.' in front of the variable.
+        To make a variable callable/called by other methods, put 
+        'self.' in front of the variable. This brings the variable outside of 
+        the method and into the class.
         '''
+        print('Initializing')
         # Load the data into dataframes
         self.df_1 = pd.read_csv('Data/data.csv')
         self.df_2 = pd.read_csv('Data/data2.csv')
+        df = self.df_1.append(self.df_2, ignore_index = True)
+        # Rename column headers
+        df.rename(columns = {'WO #':'work_order_id', 'Chargeback':'liability', 'Terms':'work_order'}, inplace = True)
+        self.df = df
         # Empty list for...
         self.documents = []
+        # Update Pandas settings. View full contents of each column
+        pd.set_option('display.max_colwidth', -1)
+        # Display up to 10 columns
+        pd.set_option('display.max_columns', 10)
+
+    def explore_data(self):
+        print('Running explore_data()')
+        # Define the raw dataframe
+        df = self.df
+        # Print basic info about dataframe
+        print('\nOriginal dataframe info')
+        print('----------------------------------------')
+        df.info()
+        print('----------------------------------------')
+        # Print out first 5 rows of the df
+        self.null = df.isnull().values.any()
+        print(f'\nAre there any null values? {self.null}')
+        print('\nPrinting the first 5 rows of the original dataframe')
+        display(df.head())
+        
+        # Create csv of duplicate terms to be audited
+        duplicate_terms = df[df.duplicated(subset=['work_order'], keep = False)]
+        self.duplicate_terms = duplicate_terms.sort_values(by=['work_order'])
+        duplicate_terms['work_order_id'].nunique()
+        # Create csv of duplicate work order numbers to be audited
+        duplicate_wo = df[df.duplicated(subset=['work_order_id'], keep = False)]
+        self.duplicate_wo = duplicate_wo.sort_values(by=['work_order_id'])
 
     def clean_df(self):
-        # Combine the two dataframes into one dataframe
-        df = self.df_1.append(self.df_2, ignore_index = True)
-        # Fill null cells with the string 'blank'
-        df = df.fillna('blank')
+        print('Running clean_df()')
+        df = self.df
+        # Remove any rows with a null cell
+        if self.null is True:
+            df = df.dropna()
+            f'Removing rows with null values'
+        # Remove rows with invalid terms
+        df[df['work_order'] != '#NAME?']
         # Parse out phone numbers into a new column, phone_num
-        df['phone_num_1'] = df['Terms'].str.extract(
+        df['phone_num'] = df['work_order'].str.extract(
             '(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)')
-        # Remove the phone numbers from the Terms column
-        df['Terms'] = df['Terms'].replace(
+        # Remove the phone numbers from the work_order column
+        df['work_order'] = df['work_order'].replace(
             '(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)', '', regex = True)
-        # Extract email addresses
-        df['email'] = df['Terms'].str.extract('(\S+@\S+)')
-        # Remove email addresses
-        df['Terms'] = df['Terms'].replace('(\S+@\S+)', '', regex=True)
-        # Remove "Contact:", "Email:", "Phone:"
-        df['Terms'] = df['Terms'].replace('(Contact:|Email:|Phone:)', '', regex=True)
-        # Extract the code at the end of each email
-        df['Code'] = df['Terms'].str.rsplit(' ', 1).str[1]
-        # Remove the code from the Terms column
-        df['Terms'] = df['Terms'].str.rsplit(' ', 1).str[0]
-        # Make dataframe callable outside of the method
-        self.df = df
-        # Convert dataframe columns to series
-        self.X = df["Terms"]
-        self.y = df["Chargeback"]
+        # Extract email addresses and put into separate column
+        df['email'] = df['work_order'].str.extract('(\S+@\S+)')
+        # Remove email addresses from work_order column
+        df['work_order'] = df['work_order'].replace('(\S+@\S+)', '', regex=True)
+        # Remove "Contact:", "Email:", "Phone:" from each work order
+        df['work_order'] = df['work_order'].replace('(Contact:|Email:|Phone:)', '', regex=True)
+        # Extract the property ID from the end of each work order
+        df['property_id'] = df['work_order'].str.rsplit(' ', 1).str[1]
+        # Remove the property ID from each work order
+        df['work_order'] = df['work_order'].str.rsplit(' ', 1).str[0]
+        # Make clean dataframe callable outside of the method
+        df_clean = df
+        print('Cleaned dataframe info')
+        print('----------------------------------------')
+        df_clean.info()
+        print('----------------------------------------')
+        print('\nPrinting the first 5 rows of the clean dataframe')
+        display(df_clean.head())
+        # Convert dataframe columns to series for later method use
+        self.X = df["work_order"]
+        self.y = df["liability"]
 
     def link_words(self):
         # Further clean and then lemmatize

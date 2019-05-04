@@ -1,0 +1,10 @@
+# Ignore the following files
+
+.DS_Store
+.ipynb_checkpoints/model-checkpoint.ipynb
+__pycache__/model.cpython-37.pyc
+
+# Also ignore the main data used in the repo
+# The data is sensitive so we shouldn't have it on a public repo
+
+/Data/*
