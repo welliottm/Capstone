@@ -53,7 +53,8 @@ class review_invoices:
         self.df_2 = pd.read_csv('Data/data2.csv')
         df = self.df_1.append(self.df_2, ignore_index = True)
         # Rename column headers
-        df.rename(columns = {'WO #':'work_order_id', 'Chargeback':'liability', 'Terms':'work_order'}, inplace = True)
+        df.rename(columns = {'WO #':'work_order_id', 'Chargeback':'liability', 
+            'Terms':'work_order'}, inplace = True)
         self.df = df
         # Empty list for...
         self.documents = []
@@ -91,9 +92,9 @@ class review_invoices:
         # Remove any rows with a null cell
         if self.null is True:
             df = df.dropna()
-            f'Removing rows with null values'
         # Remove rows with invalid terms
-        df[df['work_order'] != '#NAME?']
+        print('\nDropping work orders with invalid text: "#NAME?"')
+        df = df.drop(df[df['work_order'] == '#NAME?'].index)
         # Parse out phone numbers into a new column, phone_num
         df['phone_num'] = df['work_order'].str.extract(
             '(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)')
@@ -105,14 +106,17 @@ class review_invoices:
         # Remove email addresses from work_order column
         df['work_order'] = df['work_order'].replace('(\S+@\S+)', '', regex=True)
         # Remove "Contact:", "Email:", "Phone:" from each work order
-        df['work_order'] = df['work_order'].replace('(Contact:|Email:|Phone:)', '', regex=True)
+        df['work_order'] = df['work_order'].replace('(Contact:|Email:|Phone:)', 
+            '', regex=True)
         # Extract the property ID from the end of each work order
         df['property_id'] = df['work_order'].str.rsplit(' ', 1).str[1]
         # Remove the property ID from each work order
         df['work_order'] = df['work_order'].str.rsplit(' ', 1).str[0]
         # Make clean dataframe callable outside of the method
+        self.df_clean = df
+        # Review some of the changes made to the data
         df_clean = df
-        print('Cleaned dataframe info')
+        print('\nCleaned dataframe info')
         print('----------------------------------------')
         df_clean.info()
         print('----------------------------------------')
