@@ -119,6 +119,9 @@ class review_invoices:
         # Replace any non-word characters from work_order column with a space
         print('Replacing all non-word characters with a space')
         df['work_order'] = df['work_order'].str.replace('\W', ' ', regex = True)
+        # Make the work_order column all lower case
+        print('Making work_order column all lower case')
+        df['work_order'] = df['work_order'].str.lower()
         # Make clean dataframe callable outside of the method
         self.df_clean = df
         # Review some of the changes made to the data
@@ -136,10 +139,9 @@ class review_invoices:
     def link_words(self):
         # Further clean and then lemmatize
         # Some of the below could be moved to clean_df()
-        document = self.document
+        document = self.X
         stemmer = WordNetLemmatizer()
         for sen in range(0, len(self.X)):
-            document = document.lower()
             document = document.split()
             document = [stemmer.lemmatize(word) for word in document]
             document = ' '.join(document)
