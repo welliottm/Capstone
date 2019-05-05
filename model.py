@@ -96,18 +96,22 @@ class review_invoices:
         print('\nDropping work orders with invalid text: "#NAME?"')
         df = df.drop(df[df['work_order'] == '#NAME?'].index)
         # Parse out phone numbers into a new column, phone_num
+        print('Extracting and removing phone numbers')
         df['phone_num'] = df['work_order'].str.extract(
             '(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)')
         # Remove the phone numbers from the work_order column
         df['work_order'] = df['work_order'].replace(
             '(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)', '', regex = True)
+        print('Extracting and removing email addresses')
         # Extract email addresses and put into separate column
         df['email'] = df['work_order'].str.extract('(\S+@\S+)')
         # Remove email addresses from work_order column
         df['work_order'] = df['work_order'].replace('(\S+@\S+)', '', regex=True)
+        print('Removing meaningless words from work order templates')
         # Remove "Contact:", "Email:", "Phone:" from each work order
         df['work_order'] = df['work_order'].replace('(Contact:|Email:|Phone:)', 
             '', regex=True)
+        print('Extracting and removing property ID\'s')
         # Extract the property ID from the end of each work order
         df['property_id'] = df['work_order'].str.rsplit(' ', 1).str[1]
         # Remove the property ID from each work order
