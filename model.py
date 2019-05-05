@@ -116,6 +116,8 @@ class review_invoices:
         df['property_id'] = df['work_order'].str.rsplit(' ', 1).str[1]
         # Remove the property ID from each work order
         df['work_order'] = df['work_order'].str.rsplit(' ', 1).str[0]
+        # Replace any non-word characters from work_order column with a space
+        df['work_order'] = re.sub(r'\W', ' ', df['work_order'])
         # Make clean dataframe callable outside of the method
         self.df_clean = df
         # Review some of the changes made to the data
@@ -135,7 +137,6 @@ class review_invoices:
         # Some of the below could be moved to clean_df()
         stemmer = WordNetLemmatizer()
         for sen in range(0, len(self.X)):
-            document = re.sub(r'\W', ' ', str(self.X[sen]))
             document = document.lower()
             document = document.split()
             document = [stemmer.lemmatize(word) for word in document]
