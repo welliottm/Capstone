@@ -2,15 +2,19 @@
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.preprocessing import sequence
+from IPython.display import clear_output
 from IPython.display import display
-import numpy as np  
+import time, sys
+import numpy as np
 import pandas as pd
 import re
 import nltk
 nltk.download('stopwords')
+nltk.download('punkt')
 from nltk.corpus import stopwords
 nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
 from sklearn.metrics import confusion_matrix, accuracy_score, auc
 # tensorflow is needed as a dependency for something else
 
@@ -53,10 +57,9 @@ class review_invoices:
         self.df_2 = pd.read_csv('Data/data2.csv')
         df = self.df_1.append(self.df_2, ignore_index = True)
         # Rename column headers
-        df.rename(columns = {'WO #':'work_order_id', 'Chargeback':'liability', 'Terms':'work_order'}, inplace = True)
+        df.rename(columns = {'WO #':'work_order_id', 'Chargeback':'liability', 
+            'Terms':'work_order'}, inplace = True)
         self.df = df
-        # Empty list for...
-        self.documents = []
         # Update Pandas settings. View full contents of each column
         pd.set_option('display.max_colwidth', -1)
         # Display up to 10 columns
@@ -91,28 +94,46 @@ class review_invoices:
         # Remove any rows with a null cell
         if self.null is True:
             df = df.dropna()
-            f'Removing rows with null values'
         # Remove rows with invalid terms
-        df[df['work_order'] != '#NAME?']
+        print('\nDropping work orders with invalid text: "#NAME?"')
+        df = df.drop(df[df['work_order'] == '#NAME?'].index)
         # Parse out phone numbers into a new column, phone_num
+        print('Extracting and removing phone numbers')
         df['phone_num'] = df['work_order'].str.extract(
             '(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)')
         # Remove the phone numbers from the work_order column
         df['work_order'] = df['work_order'].replace(
             '(\(?\d\d\d\)?-? ?\.?\d\d\d-?\.? ?\d\d\d\d?)', '', regex = True)
+        print('Extracting and removing email addresses')
         # Extract email addresses and put into separate column
         df['email'] = df['work_order'].str.extract('(\S+@\S+)')
         # Remove email addresses from work_order column
-        df['work_order'] = df['work_order'].replace('(\S+@\S+)', '', regex=True)
+        df['work_order'] = df['work_order'].replace('(\S+@\S+)', '', regex = True)
+        print('Removing some meaningless words from work order templates')
         # Remove "Contact:", "Email:", "Phone:" from each work order
-        df['work_order'] = df['work_order'].replace('(Contact:|Email:|Phone:)', '', regex=True)
+        df['work_order'] = df['work_order'].replace('(Contact:|Email:|Phone:)', 
+            '', regex=True)
+        print('Extracting and removing property ID\'s')
         # Extract the property ID from the end of each work order
         df['property_id'] = df['work_order'].str.rsplit(' ', 1).str[1]
         # Remove the property ID from each work order
         df['work_order'] = df['work_order'].str.rsplit(' ', 1).str[0]
+        # Replace any non-word characters from work_order column with a space
+        print('Replacing all non-word characters with a space')
+        df['work_order'] = df['work_order'].str.replace('\W', ' ', regex = True)
+        # Make the work_order column all lower case
+        print('Making work_order column all lower case')
+        df['work_order'] = df['work_order'].str.lower()
+        print('Turning column of strings into column of lists (This takes some '
+            'time)')
+        df['work_order'] = df['work_order'].apply(word_tokenize)
         # Make clean dataframe callable outside of the method
+        # The index was messed up after removing some rows, need to reset_index
+        df = df.reset_index(drop = True)
+        self.df_clean = df
+        # Review some of the changes made to the data
         df_clean = df
-        print('Cleaned dataframe info')
+        print('\nCleaned dataframe info')
         print('----------------------------------------')
         df_clean.info()
         print('----------------------------------------')
@@ -124,15 +145,26 @@ class review_invoices:
 
     def link_words(self):
         # Further clean and then lemmatize
-        # Some of the below could be moved to clean_df()
+        print('Running link_words()')
+        # Define the work_order column as X
+        X = self.X
+        # Create an empty list called documents used to append lemmatized text
+        documents = []
         stemmer = WordNetLemmatizer()
-        for sen in range(0, len(self.X)):
-            document = re.sub(r'\W', ' ', str(self.X[sen]))
-            document = document.lower()
-            document = document.split()
+        print('\nLemmatizing. This one takes some time too...')
+        # Lemmatize each word from each list of words, one at at time
+        # Join those words together into strings, like they started
+        # Append each string onto the documents list
+        for sen in range(0, len(X)):
+            document = X[sen]
             document = [stemmer.lemmatize(word) for word in document]
             document = ' '.join(document)
-            self.documents.append(document)
+            documents.append(document)
+        self.documents = documents
+        # Print out first five items in documents list
+        print('\nWe\'ve turned the work_order column into a list called '
+            '"documents"')
+        self.documents[:5]
 
     def vectorize(self):
         from sklearn.feature_extraction.text import TfidfVectorizer  
