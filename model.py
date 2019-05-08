@@ -2,15 +2,19 @@
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.preprocessing import sequence
+from IPython.display import clear_output
 from IPython.display import display
-import numpy as np  
+import time, sys
+import numpy as np
 import pandas as pd
 import re
 import nltk
 nltk.download('stopwords')
+nltk.download('punkt')
 from nltk.corpus import stopwords
 nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
 from sklearn.metrics import confusion_matrix, accuracy_score, auc
 # tensorflow is needed as a dependency for something else
 
@@ -56,8 +60,6 @@ class review_invoices:
         df.rename(columns = {'WO #':'work_order_id', 'Chargeback':'liability', 
             'Terms':'work_order'}, inplace = True)
         self.df = df
-        # Empty list for...
-        self.documents = []
         # Update Pandas settings. View full contents of each column
         pd.set_option('display.max_colwidth', -1)
         # Display up to 10 columns
@@ -106,8 +108,8 @@ class review_invoices:
         # Extract email addresses and put into separate column
         df['email'] = df['work_order'].str.extract('(\S+@\S+)')
         # Remove email addresses from work_order column
-        df['work_order'] = df['work_order'].replace('(\S+@\S+)', '', regex=True)
-        print('Removing meaningless words from work order templates')
+        df['work_order'] = df['work_order'].replace('(\S+@\S+)', '', regex = True)
+        print('Removing some meaningless words from work order templates')
         # Remove "Contact:", "Email:", "Phone:" from each work order
         df['work_order'] = df['work_order'].replace('(Contact:|Email:|Phone:)', 
             '', regex=True)
@@ -122,7 +124,12 @@ class review_invoices:
         # Make the work_order column all lower case
         print('Making work_order column all lower case')
         df['work_order'] = df['work_order'].str.lower()
+        print('Turning column of strings into column of lists (This takes some '
+            'time)')
+        df['work_order'] = df['work_order'].apply(word_tokenize)
         # Make clean dataframe callable outside of the method
+        # The index was messed up after removing some rows, need to reset_index
+        df = df.reset_index(drop = True)
         self.df_clean = df
         # Review some of the changes made to the data
         df_clean = df
@@ -138,14 +145,26 @@ class review_invoices:
 
     def link_words(self):
         # Further clean and then lemmatize
-        # Some of the below could be moved to clean_df()
-        document = self.X
+        print('Running link_words()')
+        # Define the work_order column as X
+        X = self.X
+        # Create an empty list called documents used to append lemmatized text
+        documents = []
         stemmer = WordNetLemmatizer()
-        for sen in range(0, len(self.X)):
-            document = document.split()
+        print('\nLemmatizing. This one takes some time too...')
+        # Lemmatize each word from each list of words, one at at time
+        # Join those words together into strings, like they started
+        # Append each string onto the documents list
+        for sen in range(0, len(X)):
+            document = X[sen]
             document = [stemmer.lemmatize(word) for word in document]
             document = ' '.join(document)
-            self.documents.append(document)
+            documents.append(document)
+        self.documents = documents
+        # Print out first five items in documents list
+        print('\nWe\'ve turned the work_order column into a list called '
+            '"documents"')
+        self.documents[:5]
 
     def vectorize(self):
         from sklearn.feature_extraction.text import TfidfVectorizer  
