@@ -64,6 +64,8 @@ class review_invoices:
         pd.set_option('display.max_colwidth', -1)
         # Display up to 10 columns
         pd.set_option('display.max_columns', 10)
+        # A check for null values
+        self.null = df.isnull().values.any()
 
     def explore_data(self):
         print('Running explore_data()')
@@ -75,11 +77,9 @@ class review_invoices:
         df.info()
         print('----------------------------------------')
         # Print out first 5 rows of the df
-        self.null = df.isnull().values.any()
         print(f'\nAre there any null values? {self.null}')
         print('\nPrinting the first 5 rows of the original dataframe')
         display(df.head())
-        
         # Create csv of duplicate terms to be audited
         duplicate_terms = df[df.duplicated(subset=['work_order'], keep = False)]
         self.duplicate_terms = duplicate_terms.sort_values(by=['work_order'])
@@ -164,7 +164,6 @@ class review_invoices:
         # Print out first five items in documents list
         print('\nWe\'ve turned the work_order column into a list called '
             '"documents"')
-        self.documents[:5]
 
     def vectorize(self):
         from sklearn.feature_extraction.text import TfidfVectorizer  
