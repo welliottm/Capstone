@@ -225,3 +225,7 @@ class review_invoices:
         
         # -------- summary -------- 
         model.summary()
+
+if __name__ == "__main__":
+    ri = review_invoices()
+    ri.run()
