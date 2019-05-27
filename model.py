@@ -2,6 +2,7 @@
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.preprocessing import sequence
+from keras.utils.vis_utils import plot_model
 from IPython.display import clear_output
 from IPython.display import display
 import time, sys
@@ -16,7 +17,9 @@ nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from sklearn.metrics import confusion_matrix, accuracy_score, auc
-# tensorflow is needed as a dependency for something else
+# tensorflow is needed as a dependency
+# Pydot also needed as a dependency
+# Also need GraphViz
 
 '''
 To run the following code, you can run the following 3 lines:
@@ -180,6 +183,7 @@ class review_invoices:
             self.y, test_size=.2, random_state=1)  
 
     def model(self):
+        print('Running model()')
         model = Sequential()
         model.add(Dense(2000, input_dim = 2000, activation = 'relu'))
         model.add(Dense(1000, activation = 'relu'))
@@ -187,7 +191,22 @@ class review_invoices:
         model.add(Dense(1, activation = 'sigmoid'))
         model.compile(optimizer = 'adam', loss = 'binary_crossentropy', 
             metrics = ['accuracy'])
+        print('Fitting the model...')
+        model.fit(self.X_train,self.y_train, epochs = 10, batch_size = 512, 
+            verbose = True)
         return model
+    
+    def output(self):
+        print('Running output()')
+        model = ri.model()
+        pred = model.predict_classes(self.X_test)
+        matrix = pd.DataFrame(confusion_matrix(self.y_test, pred, 
+            labels = [x for x in range(0,2)]))
+        print('\nMatrix:')
+        print(matrix)
+        print('\nAccuracy score:')
+        print(accuracy_score(self.y_test, pred))
+        print(model.summary())
 
     def run(self):
         '''
@@ -203,29 +222,10 @@ class review_invoices:
         self.link_words()
         self.vectorize()
         self.partition()
-        self.model()
-        
-        # -------- call model -------- 
-        model = self.model()
-        
-        # -------- fit  -------- 
-        model.fit(self.X_train,self.y_train, epochs = 10, batch_size = 512, 
-            verbose = True)
-        
-        # -------- predict  -------- 
-        pred = model.predict_classes(self.X_test)
-        
-        # -------- Confusion Matrix -------- 
-        matrix = pd.DataFrame(confusion_matrix(self.y_test,pred, 
-            labels = [x for x in range(0,2)]))
-        matrix
-        
-        # -------- accuracy -------- 
-        accuracy_score(self.y_test,pred)
-        
-        # -------- summary -------- 
-        model.summary()
+        self.output()
 
+# Making this file executable
+# can enter "python3 model.py" in terminal and the full model will run
 if __name__ == "__main__":
     ri = review_invoices()
     ri.run()
