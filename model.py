@@ -157,6 +157,45 @@ class review_invoices:
             document = [stemmer.lemmatize(word) for word in document]
             document = ' '.join(document)
             documents.append(document)
+                
+        print('Creating equivalence classes...')
+        def create_ec(dictionary, corpus):
+            for key, values in dictionary.items():
+                for value in values:
+                    corpus= [item.replace(value, key) for item in corpus]
+            return corpus
+
+        corpus = documents
+        res_dic = {'resident': ['tenant', 'renter', 'occupant']}
+        corpus = create_ec(res_dic, corpus)
+        landlord_dic = {'landlord': ['owner','manager']}
+        corpus = create_ec(landlord_dic, corpus)
+        tech_dic = {'technician': ['tech']}
+        corpus = create_ec(tech_dic, corpus)
+        house_dic = {'house': ['home','property']}
+        corpus = create_ec(house_dic, corpus)
+        fridge_dic = {'refrigerator': ['fridge']}
+        corpus = create_ec(fridge_dic, corpus)
+        air_dic= {'air': ['ac', 'air conditioning']}
+        corpus = create_ec(air_dic, corpus)
+        bath_dic = {'bath': ['tub', 'bathtub']}
+        corpus = create_ec(bath_dic, corpus)
+        heater_dic= {'heater': ['furnace']}
+        corpus = create_ec(heater_dic, corpus)
+        temp_dic= {'temperature': ['temp']}
+        corpus = create_ec(temp_dic, corpus)
+        roof_dic = {'roof': ['roofing', 'shingles', 'shingle']}
+        corpus = create_ec(roof_dic, corpus)
+        documents = corpus
+        
+        print('Dropping words with less than 3 letters...')
+        newdocuments =[]
+        for row in documents:
+            shortword = re.compile(r'\W*\b\w{1,2}\b')
+            row1 = (shortword.sub('',row))
+            newdocuments.append(row1)
+        documents = newdocuments    
+        
         self.documents = documents
         # Print out first five items in documents list
         print('\nWe\'ve turned the work_order column into a list called '
@@ -169,7 +208,16 @@ class review_invoices:
             max_df=0.7,
             stop_words=stopwords.words('english')
         )
-        self.X = tfidfconverter.fit_transform(self.documents).toarray()  
+        self.X = tfidfconverter.fit_transform(self.documents).toarray()
+        
+        tfidf_result = tfidfconverter.fit_transform(self.documents)
+        
+        scores = zip(tfidfconverter.get_feature_names(),
+                 np.asarray(tfidf_result.sum(axis=0)).ravel())
+        sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)
+        print('\n Printing the top 20 TFIDF scores...\n')
+        for item in sorted_scores[0:20]:
+            print ("{0:50} Score: {1}".format(item[0], item[1]))
 
     def partition(self): 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, 
@@ -186,6 +234,7 @@ class review_invoices:
         print('Fitting the model...')
         model.fit(self.X_train, self.y_train, epochs = 10, batch_size = 128, 
             verbose = True)
+        self.model = model
         return model
 
     def visualize(self):
