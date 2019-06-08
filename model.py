@@ -16,18 +16,12 @@ from nltk.corpus import stopwords
 nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-from sklearn.metrics import confusion_matrix, accuracy_score, auc
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split 
+from sklearn.metrics import (confusion_matrix, accuracy_score, auc, 
+    balanced_accuracy_score, precision_score, average_precision_score,
+    recall_score, classification_report)
 # tensorflow is needed as a dependency
-# Pydot also needed as a dependency
-# Also need GraphViz
-
-'''
-To run the following code, you can run the following 3 lines:
-
-from model import review_invoices
-review_invoices = review_invoices()
-review_invoices.run()
-'''
 
 class review_invoices:
     '''
@@ -40,7 +34,7 @@ class review_invoices:
     in a way that makes more sense. I just want to get a good framework for the
     code before we start expanding on it.
     '''
-    
+
     def __init__(self):
         '''
         Initialize variables. Everything within this __init__ method gets
@@ -168,64 +162,52 @@ class review_invoices:
         print('\nWe\'ve turned the work_order column into a list called '
             '"documents"')
 
-    def vectorize(self):
-        from sklearn.feature_extraction.text import TfidfVectorizer  
+    def vectorize(self):  
         tfidfconverter = TfidfVectorizer(
             max_features=2000,
             min_df=10,
             max_df=0.7,
-            stop_words=stopwords.words('english'))  
+            stop_words=stopwords.words('english')
+        )
         self.X = tfidfconverter.fit_transform(self.documents).toarray()  
 
-    def partition(self):
-        from sklearn.model_selection import train_test_split  
+    def partition(self): 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, 
             self.y, test_size=.2, random_state=1)  
 
     def model(self):
-        print('Running model()')
+        print('Setting up the model...')
         model = Sequential()
-        model.add(Dense(2000, input_dim = 2000, activation = 'relu'))
-        model.add(Dense(1000, activation = 'relu'))
-        model.add(Dense(500, activation = 'relu'))
+        model.add(Dense(100, input_dim = 2000, activation = 'relu'))
         model.add(Dense(1, activation = 'sigmoid'))
+        print('Compiling the model...')
         model.compile(optimizer = 'adam', loss = 'binary_crossentropy', 
             metrics = ['accuracy'])
         print('Fitting the model...')
-        model.fit(self.X_train,self.y_train, epochs = 10, batch_size = 512, 
+        model.fit(self.X_train, self.y_train, epochs = 10, batch_size = 128, 
             verbose = True)
         return model
-    
-    def output(self):
-        print('Running output()')
+
+    def visualize(self):
         model = ri.model()
         pred = model.predict_classes(self.X_test)
         matrix = pd.DataFrame(confusion_matrix(self.y_test, pred, 
             labels = [x for x in range(0,2)]))
-        print('\nMatrix:')
-        print(matrix)
-        print('\nAccuracy score:')
-        print(accuracy_score(self.y_test, pred))
+        print(f'Confusion matrix:\n {matrix}')
+        print(f'Accuracy score: {accuracy_score(self.y_test, pred)}')
+        print(f'Balanced accuracy score: {balanced_accuracy_score(self.y_test, pred)}')
+        print(f'Precision score: {precision_score(self.y_test, pred)}')
+        print(f'Avg precision score: {average_precision_score(self.y_test, pred)}')
+        print(f'Recall score: {recall_score(self.y_test, pred)}')
+        print(f'Classification report: {classification_report(self.y_test, pred)}')
         print(model.summary())
-
-    def run(self):
-        '''
-        This method can be called as an easy way to run all of the above methods
-        and the commands to get output. 
-        
-        The other easy alternative is to include all of this stuff in the
-        __init__ method so it get's run automatically when the class is called.
-        Splitting all of this into its own method just makes the class easier to
-        control
-        '''
-        self.clean_df()
-        self.link_words()
-        self.vectorize()
-        self.partition()
-        self.output()
 
 # Making this file executable
 # can enter "python3 model.py" in terminal and the full model will run
 if __name__ == "__main__":
     ri = review_invoices()
-    ri.run()
+    ri.clean_df()
+    ri.link_words()
+    ri.vectorize()
+    ri.partition()
+    ri.visualize()
