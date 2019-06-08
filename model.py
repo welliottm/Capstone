@@ -161,6 +161,44 @@ class review_invoices:
             document = [stemmer.lemmatize(word) for word in document]
             document = ' '.join(document)
             documents.append(document)
+        # Creating equivalence classes
+        print('Creating equivalence classes...')
+        def create_ec(dictionary, corpus):
+            for key, values in dictionary.items():
+                for value in values:
+                    corpus= [item.replace(value, key) for item in corpus]
+            return corpus
+        corpus = documents
+        res_dic = {'resident': ['tenant', 'renter', 'occupant']}
+        corpus = create_ec(res_dic, corpus)
+        landlord_dic = {'landlord': ['owner','manager']}
+        corpus = create_ec(landlord_dic, corpus)
+        tech_dic = {'technician': ['tech']}
+        corpus = create_ec(tech_dic, corpus)
+        house_dic = {'house': ['home','property']}
+        corpus = create_ec(house_dic, corpus)
+        fridge_dic = {'refrigerator': ['fridge']}
+        corpus = create_ec(fridge_dic, corpus)
+        air_dic= {'air': ['ac', 'air conditioning']}
+        corpus = create_ec(air_dic, corpus)
+        bath_dic = {'bath': ['tub', 'bathtub']}
+        corpus = create_ec(bath_dic, corpus)
+        heater_dic= {'heater': ['furnace']}
+        corpus = create_ec(heater_dic, corpus)
+        temp_dic= {'temperature': ['temp']}
+        corpus = create_ec(temp_dic, corpus)
+        roof_dic = {'roof': ['roofing', 'shingles', 'shingle']}
+        corpus = create_ec(roof_dic, corpus)
+        documents = corpus
+        # Remove all words shorter than 3 letters long
+        print('Dropping words with less than 3 letters...')
+        newdocuments =[]
+        for row in documents:
+            shortword = re.compile(r'\W*\b\w{1,2}\b')
+            row1 = (shortword.sub('',row))
+            newdocuments.append(row1)
+        documents = newdocuments 
+        # Make the work orders a class variable
         self.documents = documents
         # Print out first five items in documents list
         print('We\'ve turned the work_order column into a list called '
@@ -177,13 +215,21 @@ class review_invoices:
             max_df=0.7,
             stop_words=stopwords.words('english')
         )
-        self.X = tfidfconverter.fit_transform(self.documents).toarray()  
+        self.X = tfidfconverter.fit_transform(self.documents).toarray()
+        # Print out several of the top terms and their TF-IDF scores
+        tfidf_result = tfidfconverter.fit_transform(self.documents)
+        scores = zip(tfidfconverter.get_feature_names(),
+                 np.asarray(tfidf_result.sum(axis=0)).ravel())
+        sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)
+        print('Printing the top 20 words by TFIDF score...')
+        for item in sorted_scores[0:20]:
+            print ("Word: {0:20} Score: {1:.2f}".format(item[0], item[1]))
 
     def partition(self):
         
         "Split data into training and test groups"
         
-        print('Splitting the data into training and test groups...')
+        print('\nSplitting the data into training and test groups...')
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, 
             self.y, test_size=.2, random_state=1)  
 
@@ -207,20 +253,20 @@ class review_invoices:
         
         "Print output regarding the trained model"
         
-        print('\nVisualizing the model output...')
         model = ri.model()
+        print('\nVisualizing the model output...')
         pred = model.predict_classes(self.X_test)
         matrix = pd.DataFrame(confusion_matrix(self.y_test, pred, 
             labels = [x for x in range(0,2)]))
         print(f'Confusion matrix:\n {matrix}')
-        print(f'''
-        Accuracy score: {accuracy_score(self.y_test, pred)}
-        Balanced accuracy score: {balanced_accuracy_score(self.y_test, pred)}
-        Precision score: {precision_score(self.y_test, pred)}
-        Average precision score: {average_precision_score(self.y_test, pred)}
-        Recall score: {recall_score(self.y_test, pred)}
-        Classification report: {classification_report(self.y_test, pred)}
-        ''')
+        print(
+        f'Accuracy score: {accuracy_score(self.y_test, pred):.3f}\n'
+        f'Balanced accuracy score: {balanced_accuracy_score(self.y_test, pred):.3f}\n'
+        f'Precision score: {precision_score(self.y_test, pred):.3f}\n'
+        f'Average precision score: {average_precision_score(self.y_test, pred):.3f}\n'
+        f'Recall score: {recall_score(self.y_test, pred):.3f}\n'
+        f'Classification report:\n{classification_report(self.y_test, pred)}\n'
+        )
         print(model.summary())
 
 # Making this file executable
