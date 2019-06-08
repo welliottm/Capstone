@@ -247,6 +247,7 @@ class review_invoices:
         print('Fitting the model...')
         model.fit(self.X_train, self.y_train, epochs = 10, batch_size = 128, 
             verbose = True)
+        self.model = model
         return model
 
     def visualize(self):
