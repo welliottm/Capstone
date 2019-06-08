@@ -1,3 +1,7 @@
+"""Model to predict work order chargebacks for Invitation Homes
+
+"""
+
 # Import libraries
 from keras.models import Sequential
 from keras.layers import Dense
@@ -25,30 +29,23 @@ from sklearn.metrics import (confusion_matrix, accuracy_score, auc,
 
 class review_invoices:
     '''
-    I put all of David's code into a class. I split everything within the class
-    into methods. I didn't adjust much of the code. Pretty much all I did was 
-    combine the two csv's into one dataframe since the csv's had to be split
-    into two.
-    
-    There is opportunity to adjust and restructure the methods within this class
-    in a way that makes more sense. I just want to get a good framework for the
-    code before we start expanding on it.
+    First explore, clean, and normalize the data. Next train a neural network
+    using Keras to predict who is liable for a work order. Finally print 
+    output of the model.
     '''
 
     def __init__(self):
-        '''
-        Initialize variables. Everything within this __init__ method gets
-        run automatically when the review_invoices class gets called. This is
-        a great place to define variables and possibly run methods automatically
         
-        Every variable defined within this method can be called and viewed by 
-        the user. Conversely, anything within the below methods is private.
+        """
+        Import the data which should be comprised of three columns:
+            1) WO #
+            2) Chargeback
+            3) Terms
         
-        To make a variable callable/called by other methods, put 
-        'self.' in front of the variable. This brings the variable outside of 
-        the method and into the class.
-        '''
-        print('Initializing')
+        Create a Pandas dataframe of the data and make it a class variable.
+        """
+        
+        print('\nInitializing...')
         # Load the data into dataframes
         self.df_1 = pd.read_csv('Data/data.csv')
         self.df_2 = pd.read_csv('Data/data2.csv')
@@ -65,17 +62,20 @@ class review_invoices:
         self.null = df.isnull().values.any()
 
     def explore_data(self):
-        print('Running explore_data()')
+        
+        "View some basic details regarding the data"
+        
+        print('\nExploring the data...')
         # Define the raw dataframe
         df = self.df
         # Print basic info about dataframe
-        print('\nOriginal dataframe info')
-        print('----------------------------------------')
+        print('Original dataframe info:')
+        print('-' * 40)
         df.info()
-        print('----------------------------------------')
+        print('-' * 40)
         # Print out first 5 rows of the df
-        print(f'\nAre there any null values? {self.null}')
-        print('\nPrinting the first 5 rows of the original dataframe')
+        print(f'Are there any null values? {self.null}')
+        print('Printing the first 5 rows of the original dataframe:')
         display(df.head())
         # Create csv of duplicate terms to be audited
         duplicate_terms = df[df.duplicated(subset=['work_order'], keep = False)]
@@ -86,13 +86,16 @@ class review_invoices:
         self.duplicate_wo = duplicate_wo.sort_values(by=['work_order_id'])
 
     def clean_df(self):
-        print('Running clean_df()')
+        
+        "Clean the column containing work order text"
+        
+        print('\nCleaning the dataframe...')
         df = self.df
         # Remove any rows with a null cell
         if self.null is True:
             df = df.dropna()
         # Remove rows with invalid terms
-        print('\nDropping work orders with invalid text: "#NAME?"')
+        print('Dropping work orders with invalid text: "#NAME?"')
         df = df.drop(df[df['work_order'] == '#NAME?'].index)
         # Parse out phone numbers into a new column, phone_num
         print('Extracting and removing phone numbers')
@@ -130,10 +133,10 @@ class review_invoices:
         self.df_clean = df
         # Review some of the changes made to the data
         df_clean = df
-        print('\nCleaned dataframe info')
-        print('----------------------------------------')
-        df_clean.info()
-        print('----------------------------------------')
+        print('\nCleaned dataframe info:')
+        print('-' * 40)
+        print(df_clean.info())
+        print('-' * 40)
         print('\nPrinting the first 5 rows of the clean dataframe')
         display(df_clean.head())
         # Convert dataframe columns to series for later method use
@@ -141,14 +144,15 @@ class review_invoices:
         self.y = df["liability"]
 
     def link_words(self):
-        # Further clean and then lemmatize
-        print('Running link_words()')
+        
+        "Lemmatize the work order column"
+        
+        print('\nLemmatizing... This one takes some time too.')
         # Define the work_order column as X
         X = self.X
         # Create an empty list called documents used to append lemmatized text
         documents = []
         stemmer = WordNetLemmatizer()
-        print('\nLemmatizing. This one takes some time too...')
         # Lemmatize each word from each list of words, one at at time
         # Join those words together into strings, like they started
         # Append each string onto the documents list
@@ -159,10 +163,14 @@ class review_invoices:
             documents.append(document)
         self.documents = documents
         # Print out first five items in documents list
-        print('\nWe\'ve turned the work_order column into a list called '
+        print('We\'ve turned the work_order column into a list called '
             '"documents"')
 
-    def vectorize(self):  
+    def vectorize(self):
+        
+        "Vectorize the work order column"
+        
+        print('\nVectorizing...')
         tfidfconverter = TfidfVectorizer(
             max_features=2000,
             min_df=10,
@@ -171,12 +179,19 @@ class review_invoices:
         )
         self.X = tfidfconverter.fit_transform(self.documents).toarray()  
 
-    def partition(self): 
+    def partition(self):
+        
+        "Split data into training and test groups"
+        
+        print('Splitting the data into training and test groups...')
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, 
             self.y, test_size=.2, random_state=1)  
 
     def model(self):
-        print('Setting up the model...')
+        
+        "Train the neural network to predict chargebacks"
+        
+        print('\nSetting up the model...')
         model = Sequential()
         model.add(Dense(100, input_dim = 2000, activation = 'relu'))
         model.add(Dense(1, activation = 'sigmoid'))
@@ -189,23 +204,30 @@ class review_invoices:
         return model
 
     def visualize(self):
+        
+        "Print output regarding the trained model"
+        
+        print('\nVisualizing the model output...')
         model = ri.model()
         pred = model.predict_classes(self.X_test)
         matrix = pd.DataFrame(confusion_matrix(self.y_test, pred, 
             labels = [x for x in range(0,2)]))
         print(f'Confusion matrix:\n {matrix}')
-        print(f'Accuracy score: {accuracy_score(self.y_test, pred)}')
-        print(f'Balanced accuracy score: {balanced_accuracy_score(self.y_test, pred)}')
-        print(f'Precision score: {precision_score(self.y_test, pred)}')
-        print(f'Avg precision score: {average_precision_score(self.y_test, pred)}')
-        print(f'Recall score: {recall_score(self.y_test, pred)}')
-        print(f'Classification report: {classification_report(self.y_test, pred)}')
+        print(f'''
+        Accuracy score: {accuracy_score(self.y_test, pred)}
+        Balanced accuracy score: {balanced_accuracy_score(self.y_test, pred)}
+        Precision score: {precision_score(self.y_test, pred)}
+        Average precision score: {average_precision_score(self.y_test, pred)}
+        Recall score: {recall_score(self.y_test, pred)}
+        Classification report: {classification_report(self.y_test, pred)}
+        ''')
         print(model.summary())
 
 # Making this file executable
 # can enter "python3 model.py" in terminal and the full model will run
 if __name__ == "__main__":
     ri = review_invoices()
+    ri.explore_data()
     ri.clean_df()
     ri.link_words()
     ri.vectorize()
