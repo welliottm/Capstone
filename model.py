@@ -191,7 +191,7 @@ class review_invoices:
         corpus = create_ec(roof_dic, corpus)
         documents = corpus
         # Remove all words shorter than 3 letters long
-        print('Dropping words with less than 3 letters...')
+        print('Dropping words with fewer than 3 letters...')
         newdocuments =[]
         for row in documents:
             shortword = re.compile(r'\W*\b\w{1,2}\b')
@@ -254,9 +254,8 @@ class review_invoices:
         
         "Print output regarding the trained model"
         
-        model = ri.model()
         print('\nVisualizing the model output...')
-        pred = model.predict_classes(self.X_test)
+        pred = self.model.predict_classes(self.X_test)
         matrix = pd.DataFrame(confusion_matrix(self.y_test, pred, 
             labels = [x for x in range(0,2)]))
         print(f'Confusion matrix:\n {matrix}')
@@ -268,7 +267,7 @@ class review_invoices:
         f'Recall score: {recall_score(self.y_test, pred):.3f}\n'
         f'Classification report:\n{classification_report(self.y_test, pred)}\n'
         )
-        print(model.summary())
+        print(self.model.summary())
 
 # Making this file executable
 # can enter "python3 model.py" in terminal and the full model will run
@@ -279,4 +278,5 @@ if __name__ == "__main__":
     ri.link_words()
     ri.vectorize()
     ri.partition()
+    ri.model()
     ri.visualize()
