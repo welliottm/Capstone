@@ -1,4 +1,4 @@
-"""Model to predict work order chargebacks for Invitation Homes
+"""Model to predict work order chargebacks
 
 """
 
